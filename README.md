@@ -1,7 +1,6 @@
 # 📊 Sentimen Ijazah - Analisis Sentimen Media Sosial
 
-[![Backend Status](https://img.shields.io/badge/Backend-Cloud%20Run%20✓-green)](https://penilaian-sentimen-api-255173089522.asia-southeast1.run.app)
-[![Frontend Status](https://img.shields.io/badge/Frontend-Vercel%20✓-blue)](https://sentimen-ijazah-nimexxs.vercel.app)
+[![Status](https://img.shields.io/badge/Status-Vercel%20Unified%20%E2%9C%93-success)](https://sentimen-ijazah.vercel.app)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)]()
 
 Sistem analisis sentimen berbasis Machine Learning untuk menganalisis komentar YouTube tentang isu ijazah Presiden Jokowi. Menggunakan algoritma **SVM-RBF** dengan pre-processing teks bahasa Indonesia menggunakan **PySastrawi**.
@@ -70,10 +69,8 @@ Axios 1.6.0            - HTTP client
 
 ### **Deployment**
 ```
-Google Cloud Run       - Backend hosting (Python 3.11)
-Vercel                 - Frontend hosting (Vite)
+Vercel                 - Serverless Deployment (React + FastAPI Unified)
 GitHub                 - Version control
-Docker                 - Containerization
 ```
 
 ### **ML Model**
@@ -96,47 +93,30 @@ F1-Score               - 73.46%
 - npm atau yarn
 - Git
 
-### **Backend Setup (Local)**
-
-#### Windows:
-```powershell
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
-
-#### Linux/Mac:
-```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
-
-**Atau gunakan quick-start script:**
-```bash
-# Windows
-./backend/run_local.bat
-
-# Linux/Mac
-bash backend/run_local.sh
-```
-
-**Backend akan berjalan di:** `http://localhost:8000`
-
-### **Frontend Setup (Local)**
+### **Local Setup (Unified)**
 
 ```bash
-cd frontend
+# 1. Install dependencies untuk frontend & root
 npm install
-echo "VITE_API_URL=http://localhost:8000" > .env
+
+# 2. Setup backend environment (opsional untuk API key)
+echo "YOUTUBE_API_KEY=your_api_key_here" > api/.env
+echo "ENV=development" >> api/.env
+
+# 3. Jalankan backend (di tab terminal baru)
+cd api
+python -m venv venv
+# Aktifkan venv: .\venv\Scripts\activate (Windows) atau source venv/bin/activate (Mac/Linux)
+pip install -r requirements.txt
+uvicorn index:app --reload --port 8000
+
+# 4. Jalankan frontend (kembali ke root direktori, di tab terminal lain)
 npm run dev
 ```
 
-**Frontend akan berjalan di:** `http://localhost:5173`
+**Aplikasi berjalan di:**
+- Frontend: `http://localhost:5173`
+- API Backend: `http://localhost:8000` (diproxy via frontend `/api`)
 
 ---
 
@@ -250,111 +230,55 @@ curl http://localhost:8000/model/confusion
 
 ## 🚢 Deployment
 
-### **Backend - Google Cloud Run**
+Aplikasi ini menggunakan arsitektur **Vercel Unified Serverless**, di mana **Frontend (React)** dan **Backend (FastAPI)** di-deploy bersamaan dalam satu repository di Vercel.
 
-#### One-Click Deploy:
-```powershell
-cd backend
-gcloud run deploy penilaian-sentimen-api `
-  --source . `
-  --platform managed `
-  --region asia-southeast1 `
-  --allow-unauthenticated `
-  --memory 512Mi
+### **Cara Deploy ke Vercel**
+
+1. Push seluruh kode ke repository GitHub Anda.
+2. Buka [Vercel](https://vercel.com/new) dan import repository Anda.
+3. Vercel akan mendeteksi project sebagai **Vite**.
+4. Biarkan isian **Root Directory**, **Build Command**, dan **Output Directory** secara default (kosong).
+5. Tambahkan Environment Variable di Vercel:
+   - `YOUTUBE_API_KEY` = `(API Key YouTube Anda)`
+6. Klik **Deploy**.
+
+Vercel akan secara otomatis membangun React frontend dan mengubah folder `api/` menjadi endpoint serverless FastAPI berkat konfigurasi `vercel.json` yang sudah disiapkan.
+
+### **Environment Variables**
 ```
-
-**Live URL:** `https://penilaian-sentimen-api-255173089522.asia-southeast1.run.app`
-
-#### Features:
-- ✅ Auto-scaling based on traffic
-- ✅ $5 free trial credit (sufficient for hobby projects)
-- ✅ Global CDN
-- ✅ Pay-per-use pricing (no upfront cost)
-
-### **Frontend - Vercel**
-
-#### Setup:
-1. Push code ke GitHub
-2. Import di Vercel: `https://vercel.com/new`
-3. Set Root Directory: `frontend`
-4. Add Environment Variable:
-   - `VITE_API_URL` = `https://penilaian-sentimen-api-255173089522.asia-southeast1.run.app`
-5. Deploy
-
-**Live URL:** `https://sentimen-ijazah-xxx.vercel.app`
-
-#### Features:
-- ✅ Auto-deploy on git push
-- ✅ Preview deployments
-- ✅ Free tier included
-- ✅ Global edge network
-
-### **Environment Setup**
-
-**Production Environment Variables:**
-
-*Backend (Cloud Run):*
-```
-PORT=8080 (auto-set by Cloud Run)
-ENV=production
-```
-
-*Frontend (Vercel):*
-```
-VITE_API_URL=https://penilaian-sentimen-api-255173089522.asia-southeast1.run.app
+YOUTUBE_API_KEY=AIzaSy... (Wajib untuk fitur Analisis Video)
 ```
 
 ---
 
-## 📁 Struktur Project
+## 📁 Struktur Project (Vercel Unified)
 
 ```
 sentimen-ijazah/
 ├── README.md                          ← Project overview
-├── DEPLOY.md                          ← Deployment guide
-├── DEPLOYMENT_CHECKLIST.md            ← Step-by-step checklist
-├── QUICK_REFERENCE.md                 ← Quick commands
-├── REVISION_SUMMARY.md                ← Changes made
+├── vercel.json                        ← Vercel Serverless config
+├── package.json                       ← Frontend dependencies
+├── vite.config.js                     ← Vite config (termasuk proxy API)
+├── index.html                         ← Entry HTML
 │
-├── backend/                           ← FastAPI Backend
-│   ├── main.py                        ← Main API app
-│   ├── requirements.txt               ← Dependencies
-│   ├── Dockerfile                     ← Container config
-│   ├── .dockerignore
-│   ├── vercel.yaml                    ← Render config (alternative)
-│   ├── README.md                      ← Backend docs
-│   ├── run_local.bat / run_local.sh   ← Quick start scripts
+├── api/                               ← FastAPI Backend (Serverless)
+│   ├── index.py                       ← Main API app (Entrypoint Vercel)
+│   ├── requirements.txt               ← Backend dependencies
+│   ├── run_local.bat                  ← Quick start local script
 │   ├── models/                        ← Trained ML models
 │   │   ├── model_terbaik_final.pkl    ← SVM model
 │   │   └── tfidf_vectorizer_final.pkl ← TF-IDF vectorizer
-│   ├── data/                          ← Training datasets
-│   │   └── dataset_berlabel.csv       ← Labeled comments
-│   └── __pycache__/
+│   └── data/                          ← Training datasets
 │
-├── frontend/                          ← React Frontend
-│   ├── package.json                   ← Dependencies
-│   ├── vite.config.js                 ← Vite config
-│   ├── vercel.json                    ← Vercel config
-│   ├── index.html                     ← Entry HTML
-│   ├── src/
-│   │   ├── main.jsx                   ← React entry
-│   │   ├── App.jsx                    ← Main component
-│   │   ├── index.css                  ← Global styles
-│   │   ├── api.js                     ← API calls
-│   │   ├── components/                ← Reusable components
-│   │   └── pages/                     ← Page components
-│   │       ├── Dashboard.jsx          ← Main stats
-│   │       ├── Predict.jsx            ← Prediction page
-│   │       ├── Evaluasi.jsx           ← Model evaluation
-│   │       ├── Metodologi.jsx         ← Research methodology
-│   │       ├── Terdahulu.jsx          ← Related research
-│   │       ├── VideoSentimen.jsx      ← Per-video stats
-│   │       └── Tentang.jsx            ← About author
-│   ├── public/                        ← Static assets
-│   │   └── reno.jpg                   ← Author photo
-│   └── node_modules/
+├── src/                               ← React Frontend Code
+│   ├── main.jsx                       ← React entry
+│   ├── App.jsx                        ← Main component
+│   ├── api.js                         ← Axios config (baseURL: /api)
+│   ├── components/                    ← Reusable components
+│   └── pages/                         ← Page components
 │
-└── .git/                              ← Git repository
+├── public/                            ← Static assets
+└── node_modules/
 ```
 
 ---
@@ -429,10 +353,7 @@ MIT License - Bebas digunakan untuk keperluan akademis dan komersial
 ## 🔗 Links
 
 - **Live Application:** https://sentimen-ijazah.vercel.app
-- **API Backend:** https://penilaian-sentimen-api-255173089522.asia-southeast1.run.app
 - **GitHub Repository:** https://github.com/Renohidayat/sentimen-ijazah
-- **Deployment Guide:** [DEPLOY.md](./DEPLOY.md)
-- **Quick Reference:** [QUICK_REFERENCE.md](./QUICK_REFERENCE.md)
 
 ---
 
@@ -452,7 +373,8 @@ Jika ada pertanyaan atau bug:
 - [x] Model training & evaluation
 - [x] API development (FastAPI)
 - [x] Frontend dashboard (React)
-- [x] Deployment (Cloud Run + Vercel)
+- [x] Unified Deployment (Vercel Serverless)
+- [x] Integrasi YouTube Data API v3
 
 ### 🔄 In Progress
 - [ ] Add more video data
@@ -471,12 +393,12 @@ Jika ada pertanyaan atau bug:
 
 - **YouTube API** - Data source
 - **scikit-learn** - ML framework
-- **FastAPI** - Web framework
-- **React** - Frontend library
-- **Cloud Run & Vercel** - Hosting platforms
+- **FastAPI** - Backend framework
+- **React & Vite** - Frontend tools
+- **Vercel** - Unified Hosting Platform
 
 ---
 
 **Happy Analyzing! 🎉**
 
-*Last Updated: June 9, 2026*
+*Last Updated: Agustus 2026*
