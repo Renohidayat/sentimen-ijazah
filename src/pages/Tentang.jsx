@@ -492,7 +492,7 @@ export default function Tentang() {
               ['Model',    'SVM-RBF · scikit-learn · GridSearchCV','#76b900'],
               ['Fitur',    'TF-IDF Bigram · 8.000 fitur',          '#f59e0b'],
               ['Label',    'InSet Lexicon · 3 Anotator Pakar',     '#ef4444'],
-              ['Deploy',   'Google Cloud Run (backend) · Vercel (frontend)', '#8b5cf6'],
+              ['Deploy',   'Vercel Serverless (Unified)', '#8b5cf6'],
             ].map(([k, v, c]) => (
               <div key={k} style={{
                 display: 'flex', gap: 12,
