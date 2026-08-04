@@ -3,19 +3,21 @@ import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import Dashboard     from './pages/Dashboard'
 import Predict       from './pages/Predict'
 import VideoSentimen from './pages/VideoSentimen'
+import AnalisisVideo from './pages/AnalisisVideo'
 import Evaluasi      from './pages/Evaluasi'
 import Terdahulu     from './pages/Terdahulu'
 import Metodologi    from './pages/Metodologi'
 import Tentang       from './pages/Tentang'
 
 const NAV = [
-  { to: '/',           label: 'Overview'    },
-  { to: '/metodologi', label: 'Metodologi'  },
-  { to: '/predict',    label: 'Prediksi'    },
-  { to: '/video',      label: 'Per Video'   },
-  { to: '/evaluasi',   label: 'Evaluasi'    },
-  { to: '/terdahulu',  label: 'Terdahulu'   },
-  { to: '/tentang',    label: 'Tentang'     },
+  { to: '/',              label: 'Overview'       },
+  { to: '/metodologi',    label: 'Metodologi'     },
+  { to: '/predict',       label: 'Prediksi'       },
+  { to: '/analisis-video',label: 'Analisis Video' },
+  { to: '/video',         label: 'Per Video'      },
+  { to: '/evaluasi',      label: 'Evaluasi'       },
+  { to: '/terdahulu',     label: 'Terdahulu'      },
+  { to: '/tentang',       label: 'Tentang'        },
 ]
 
 /* ── Error Boundary ── */
@@ -182,14 +184,15 @@ export default function App() {
         <div style={{maxWidth:1280,margin:'0 auto'}}>
           <ErrorBoundary>
             <Routes>
-              <Route path="/"           element={<Dashboard />}     />
-              <Route path="/metodologi" element={<Metodologi />}    />
-              <Route path="/predict"    element={<Predict />}       />
-              <Route path="/video"      element={<VideoSentimen />} />
-              <Route path="/evaluasi"   element={<Evaluasi />}      />
-              <Route path="/terdahulu"  element={<Terdahulu />}     />
-              <Route path="/tentang"    element={<Tentang />}       />
-              <Route path="*"           element={<NotFound />}      />
+              <Route path="/"               element={<Dashboard />}     />
+              <Route path="/metodologi"     element={<Metodologi />}    />
+              <Route path="/predict"        element={<Predict />}       />
+              <Route path="/analisis-video" element={<AnalisisVideo />} />
+              <Route path="/video"          element={<VideoSentimen />} />
+              <Route path="/evaluasi"       element={<Evaluasi />}      />
+              <Route path="/terdahulu"      element={<Terdahulu />}     />
+              <Route path="/tentang"        element={<Tentang />}       />
+              <Route path="*"               element={<NotFound />}      />
             </Routes>
           </ErrorBoundary>
         </div>

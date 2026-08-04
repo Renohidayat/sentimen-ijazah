@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib, re, os, sys
 from pathlib import Path
+from typing import Optional
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 # Logger setup untuk Cloud Run
 import logging
@@ -161,3 +164,188 @@ def model_comparison(): return MODEL_DATA["semua_model"]
 def model_confusion(): return MODEL_DATA["confusion_matrix"]
 @app.get("/model/terdahulu") 
 def model_terdahulu(): return MODEL_DATA["penelitian_terdahulu"]
+
+# ── Analisis Video ─────────────────────────────────────────────────────────
+
+class AnalysisRequest(BaseModel):
+    video_id: str
+    max_comments: Optional[int] = 200
+
+class CommentResult(BaseModel):
+    comment_id: str
+    text: str
+    text_proses: str
+    label: str
+    confidence: dict
+    like_count: int
+    author: str
+
+class VideoInfo(BaseModel):
+    video_id: str
+    title: str
+    channel: str
+    thumbnail: str
+    view_count: str
+    comment_count: str
+
+class AnalysisResponse(BaseModel):
+    video_info: VideoInfo
+    total_analyzed: int
+    distribusi: dict
+    distribusi_persen: dict
+    comments: list[CommentResult]
+
+def _extract_video_id(raw: str) -> str:
+    """Ekstrak video ID dari berbagai format URL YouTube atau ID langsung."""
+    raw = raw.strip()
+    patterns = [
+        r'(?:v=|youtu\.be/|embed/|shorts/)([A-Za-z0-9_-]{11})',
+    ]
+    for pat in patterns:
+        m = re.search(pat, raw)
+        if m:
+            return m.group(1)
+    # Jika panjang 11 karakter alphanumeric/dash/underscore, anggap langsung video_id
+    if re.fullmatch(r'[A-Za-z0-9_-]{11}', raw):
+        return raw
+    raise ValueError(f"Tidak dapat mengekstrak video ID dari: {raw}")
+
+@app.post("/analyze-video", response_model=AnalysisResponse)
+def analyze_video(req: AnalysisRequest):
+    api_key = os.getenv("YOUTUBE_API_KEY", "")
+    if not api_key:
+        raise HTTPException(503, "YOUTUBE_API_KEY tidak dikonfigurasi di server")
+
+    # Ekstrak video ID
+    try:
+        vid = _extract_video_id(req.video_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    max_comments = max(10, min(req.max_comments or 200, 500))
+
+    try:
+        yt = build("youtube", "v3", developerKey=api_key, cache_discovery=False)
+
+        # Ambil info video
+        video_resp = yt.videos().list(
+            part="snippet,statistics",
+            id=vid
+        ).execute()
+
+        if not video_resp.get("items"):
+            raise HTTPException(404, f"Video '{vid}' tidak ditemukan atau privat")
+
+        snippet    = video_resp["items"][0]["snippet"]
+        statistics = video_resp["items"][0].get("statistics", {})
+
+        thumbnails = snippet.get("thumbnails", {})
+        thumb_url  = (
+            thumbnails.get("high", {}).get("url") or
+            thumbnails.get("medium", {}).get("url") or
+            thumbnails.get("default", {}).get("url") or
+            f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+        )
+
+        video_info = VideoInfo(
+            video_id=vid,
+            title=snippet.get("title", ""),
+            channel=snippet.get("channelTitle", ""),
+            thumbnail=thumb_url,
+            view_count=statistics.get("viewCount", "0"),
+            comment_count=statistics.get("commentCount", "0"),
+        )
+
+        # Ambil komentar dengan pagination
+        raw_comments = []
+        page_token   = None
+
+        while len(raw_comments) < max_comments:
+            batch_size = min(100, max_comments - len(raw_comments))
+            kwargs = dict(
+                part="snippet",
+                videoId=vid,
+                maxResults=batch_size,
+                textFormat="plainText",
+                order="relevance",
+            )
+            if page_token:
+                kwargs["pageToken"] = page_token
+
+            try:
+                resp = yt.commentThreads().list(**kwargs).execute()
+            except HttpError as e:
+                if e.resp.status == 403:
+                    raise HTTPException(403, "Komentar dinonaktifkan atau video dibatasi")
+                raise
+
+            for item in resp.get("items", []):
+                top = item["snippet"]["topLevelComment"]["snippet"]
+                raw_comments.append({
+                    "id":    item["id"],
+                    "text":  top.get("textDisplay", ""),
+                    "likes": int(top.get("likeCount", 0)),
+                    "author": top.get("authorDisplayName", ""),
+                })
+
+            page_token = resp.get("nextPageToken")
+            if not page_token:
+                break
+
+    except HTTPException:
+        raise
+    except HttpError as e:
+        logger.error(f"YouTube API error: {e}")
+        raise HTTPException(502, f"YouTube API error: {e.reason}")
+    except Exception as e:
+        logger.error(f"analyze_video error: {e}")
+        raise HTTPException(500, str(e))
+
+    # Klasifikasi setiap komentar
+    results: list[CommentResult] = []
+    distribusi = {"Positif": 0, "Negatif": 0, "Netral": 0}
+
+    for c in raw_comments:
+        text = c["text"]
+        processed = preprocess(text)
+        if not processed.strip():
+            processed = text[:200]  # fallback agar tidak kosong
+
+        try:
+            vec   = TFIDF.transform([processed])
+            label = MODEL.predict(vec)[0]
+            try:
+                proba      = MODEL.predict_proba(vec)[0]
+                confidence = {cls: round(float(p)*100, 2) for cls, p in zip(MODEL.classes_, proba)}
+            except AttributeError:
+                confidence = {label: 100.0}
+        except Exception:
+            label      = "Netral"
+            confidence = {"Netral": 100.0}
+
+        distribusi[label] = distribusi.get(label, 0) + 1
+
+        results.append(CommentResult(
+            comment_id=c["id"],
+            text=text,
+            text_proses=processed,
+            label=label,
+            confidence=confidence,
+            like_count=c["likes"],
+            author=c["author"],
+        ))
+
+    total = len(results)
+    persen = {
+        k: round(v / total * 100, 2) if total > 0 else 0.0
+        for k, v in distribusi.items()
+    }
+
+    return AnalysisResponse(
+        video_info=video_info,
+        total_analyzed=total,
+        distribusi=distribusi,
+        distribusi_persen=persen,
+        comments=results,
+    )
+

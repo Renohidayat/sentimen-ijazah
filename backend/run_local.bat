@@ -6,6 +6,17 @@ echo Sentimen Ijazah - Backend Local Setup
 echo ========================================
 echo.
 
+REM Load .env file jika ada
+if exist ".env" (
+    echo [0/3] Loading .env variables...
+    for /f "usebackq tokens=1,* delims==" %%A in (".env") do (
+        if not "%%A"=="" if not "%%A:~0,1%"=="#" (
+            set "%%A=%%B"
+        )
+    )
+    echo       YOUTUBE_API_KEY loaded
+)
+
 REM Check if venv exists
 if not exist "venv" (
     echo [1/3] Creating virtual environment...
