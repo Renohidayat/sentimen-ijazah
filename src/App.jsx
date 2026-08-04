@@ -54,32 +54,7 @@ function NotFound() {
   )
 }
 
-/* ── Backend offline banner ── */
-function OfflineBanner() {
-  const [offline, setOffline]     = useState(false)
-  const [dismissed, setDismissed] = useState(false)
 
-  useEffect(() => {
-    const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-    fetch(`${BASE}/health`, { signal: AbortSignal.timeout(5000) })
-      .then(r => { if (!r.ok) setOffline(true) })
-      .catch(() => setOffline(true))
-  }, [])
-
-  if (!offline || dismissed) return null
-  return (
-    <div style={{
-      background:'rgba(223,101,0,.1)', borderBottom:'1px solid rgba(223,101,0,.35)',
-      padding:'9px 24px', display:'flex', justifyContent:'space-between',
-      alignItems:'center', gap:12, fontSize:12, fontFamily:'var(--mono)',
-    }}>
-      <span style={{color:'#ef9100'}}>
-        ⚠ BACKEND OFFLINE — Data live & prediksi tidak tersedia. Periksa koneksi ke server.
-      </span>
-      <button onClick={() => setDismissed(true)} style={{background:'transparent',border:'none',color:'#ef9100',cursor:'pointer',fontSize:18,lineHeight:1}}>×</button>
-    </div>
-  )
-}
 
 /* ── Mobile Drawer ── */
 function MobileNav({ open, onClose }) {
@@ -177,7 +152,7 @@ export default function App() {
       </nav>
 
       <MobileNav open={menuOpen} onClose={() => setMenuOpen(false)}/>
-      <OfflineBanner/>
+
 
       {/* CONTENT */}
       <main style={{flex:1,padding:'32px 24px'}}>
